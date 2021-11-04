@@ -1,4 +1,6 @@
 #conda activate archr R18
+# perform DEG test and output subtype profiles averaged by cell subtypes.
+
 library(Seurat)
 library(dplyr)
 library(Matrix)

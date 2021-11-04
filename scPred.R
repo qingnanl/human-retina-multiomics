@@ -1,0 +1,56 @@
+#R3-gdal_env
+library(Seurat)
+library(Matrix)
+library(dplyr)
+library(scPred)
+library(SingleCellExperiment)
+scp<-readRDS("/storage/singlecell/qingnanl/human_10x_process/25_scPred/1_full_ref/scp.rds")
+sample_list<-c("D028_13", "D027_13", "D026_13", "D021_13", "D019_13", "D018_13", "D017_13", "D013_13", "D009_13","D005_13",
+               "D030_13", "19_D019", "19_D011", "19_D010","19_D009", "19_D008",  "19_D007", "19_D006","19_D005", "19_D003")
+head<-"~BaseCalls/10x/10x3_"
+tail<-"/outs/filtered_feature_bc_matrix/"
+setwd("/storage/chen/data_share_folder/human_20_snRNAseq/output_1/")
+for (sample in sample_list){
+  address<-paste0(head, sample, tail)
+  query <- Read10X(data.dir = address)
+  query <- CreateSeuratObject(counts = query,  min.cells = 0.005*length(colnames(query)), min.features = 500)
+  query@meta.data$sample<-sample
+  query <- SCTransform(query, verbose = FALSE)
+  query <- RunPCA(query, verbose = FALSE)
+  query<-RunUMAP(query, reduction = "pca", dims = 1:15, umap.method='umap-learn',metric = 'correlation')
+  query <- RunTSNE(query, dims = 1:15, verbose = FALSE)
+  query <- FindNeighbors(query, dims = 1:15, verbose = FALSE)
+  query <- FindClusters(query, verbose = FALSE, resolution = 0.5)
+  ov_add<-paste0(sample, "_overview.pdf")
+  pdf(ov_add, width = 10, height = 8)
+  print(DimPlot(query, label = T))
+  dev.off()
+  DefaultAssay(query)<-"RNA"
+  query.sce <- as.SingleCellExperiment(query)
+  query_counts <- counts(query.sce)
+  query_cpm  <- apply(query_counts, 2, function(x) (x/sum(x))*1000000)
+  scp_query <- scPredict(scp, newData = query_cpm, threshold = 0.8)
+  pred<-getPredictions(scp_query)
+  pred[, "max"] <- apply(pred[, 1:9], 1, max)
+  query@meta.data$scPred<-pred$predClass
+  query@meta.data$scPred_max<-pred$max
+  sp_add<-paste0(sample, "_scPred.pdf")
+  pdf(sp_add, width = 8, height = 6)
+  print(DimPlot(object = query, group.by = "scPred", label = T))
+  dev.off()
+  ms_add<-paste0(sample, "_maxScore.pdf")
+  pdf(ms_add, width = 8, height = 6)
+  print(FeaturePlot(object = query, features = "scPred_max"))
+  dev.off()
+  gc_add<-paste0(sample, "_genecount.pdf")
+  pdf(gc_add, width = 8, height = 6)
+  print(FeaturePlot(object = query, features = "nFeature_RNA", max.cutoff = "q99"))
+  dev.off()
+  Conf_test_scPred<- table(query@active.ident, query@meta.data$scPred)
+  cm_add<-paste0(sample, "_conf.csv")
+  write.csv(Conf_test_scPred, cm_add)
+  mt_add<-paste0(sample, "_metadata.csv")
+  write.csv(query@meta.data, mt_add)
+  sr_add<-paste0(sample, "_sr.rds")
+  saveRDS(query, sr_add)
+}
