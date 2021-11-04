@@ -4,8 +4,8 @@ library(scPred)
 library(Matrix)
 library(dplyr)
 library(SingleCellExperiment)
-ref<-readRDS("/storage/singlecell/qingnanl/human_10x_process/visualize_genes/data_reduction.rds")
-ref.subset<-subset(ref, downsample = 10000, idents = levels(ref@active.ident)[c(1:5, 7:10)])
+ref<-readRDS("~/data_reduction.rds")
+ref.subset<-subset(ref, downsample = 10000, idents = levels(ref@active.ident)[c(1:5, 7:10)]) # use only desired cell types to include in ref 
   
 ref.sce<-as.SingleCellExperiment(ref.subset)
 ref_metadata <- as.data.frame(colData(ref.sce))

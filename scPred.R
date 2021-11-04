@@ -4,12 +4,12 @@ library(Matrix)
 library(dplyr)
 library(scPred)
 library(SingleCellExperiment)
-scp<-readRDS("/storage/singlecell/qingnanl/human_10x_process/25_scPred/1_full_ref/scp.rds")
+scp<-readRDS("~/scp.rds")
 sample_list<-c("D028_13", "D027_13", "D026_13", "D021_13", "D019_13", "D018_13", "D017_13", "D013_13", "D009_13","D005_13",
                "D030_13", "19_D019", "19_D011", "19_D010","19_D009", "19_D008",  "19_D007", "19_D006","19_D005", "19_D003")
 head<-"~BaseCalls/10x/10x3_"
 tail<-"/outs/filtered_feature_bc_matrix/"
-setwd("/storage/chen/data_share_folder/human_20_snRNAseq/output_1/")
+setwd("~/output_1/")
 for (sample in sample_list){
   address<-paste0(head, sample, tail)
   query <- Read10X(data.dir = address)
