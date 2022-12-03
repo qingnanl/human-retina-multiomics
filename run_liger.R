@@ -1,0 +1,56 @@
+library(rliger)
+library(liger, lib.loc = "/storage/chen/home/qingnanl/anaconda3/envs/bindSC/lib/R/library/")
+library(Seurat)
+library(dplyr)
+library(Matrix)
+library(cluster)
+library(SeuratWrappers)
+library(ape)
+
+setwd("/storage/chenlab/Users/qingnanl/humanre/out/cspecies/")
+# 
+run_liger <- function(input_data, file_name, k = 20, lambda = 5, label = T){
+  dat <- readRDS(input_data)
+  dat <- FindVariableFeatures(dat, nfeatures = 2000, selection.method = "dispersion")
+  dat <- ScaleData(dat, split.by = "species", do.center = FALSE)
+  dat <- RunOptimizeALS(dat, k = k, lambda = lambda, split.by = "species")#
+  dat <- RunQuantileNorm(dat, split.by = "species")
+  dat <- FindNeighbors(dat, reduction = "iNMF", dims = 1:ncol(dat[["iNMF"]]))
+  dat <- FindClusters(dat, resolution = 0.5)
+  dat <- RunUMAP(dat, dims = 1:ncol(dat[["iNMF"]]), reduction = "iNMF")
+  pdf(paste0(file_name, "_liger_split.pdf"), height = 4, width = 20)
+  p<-DimPlot(dat, split.by = "species", group.by = "species", raster = T)
+  print(p)
+  dev.off()
+  pdf(paste0(file_name, "_liger_split_ct.pdf"), height = 4, width = 20)
+  p<-DimPlot(dat, split.by = "species", group.by = "cell_identity", raster = T, repel = label, label = label)+ NoLegend()
+  print(p)
+  dev.off()
+  print("plot done")
+  saveRDS(dat, paste0(file_name, "_liger.rds"))
+  print("save liger done")
+  dat_dim<-as.data.frame(t(dat@reductions$iNMF@cell.embeddings[, 1:ncol(dat[["iNMF"]])]))
+  dat_dim_avg <- sapply(split(colnames(dat_dim), as.character(dat@meta.data$cell_identity)),
+                           function(cells) rowMeans(as.matrix(dat_dim[,cells])))
+  dat_dim_avg<-as.data.frame(t(dat_dim_avg))
+  saveRDS(dat_dim_avg, paste0(file_name, "_dim_avg.rds"))
+  print("done")
+  print(file_name)
+  print(lambda)
+}
+
+run_liger(input_data = "HC_species.rds", file_name = "HC_3", k = 10, lambda = 3)
+run_liger(input_data = "BC_species.rds", file_name = "BC_3", lambda = 3)
+run_liger(input_data = "AC_species.rds", file_name = "AC_3", lambda = 3)
+run_liger(input_data = "RGC_species.rds", file_name = "RGC_3", lambda =3, label = F)
+
+run_liger(input_data = "HC_species.rds", file_name = "HC_5", k = 10, lambda = 5)
+run_liger(input_data = "BC_species.rds", file_name = "BC_5", lambda = 5)
+run_liger(input_data = "AC_species.rds", file_name = "AC_5", lambda = 5)
+run_liger(input_data = "RGC_species.rds", file_name = "RGC_5", lambda =5, label = F)
+
+run_liger(input_data = "HC_species.rds", file_name = "HC_8", k = 10, lambda = 8)
+run_liger(input_data = "BC_species.rds", file_name = "BC_8", lambda = 8)
+run_liger(input_data = "AC_species.rds", file_name = "AC_8", lambda = 8)
+run_liger(input_data = "RGC_species.rds", file_name = "RGC_8", lambda =8, label = F)
+
